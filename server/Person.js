@@ -36,6 +36,11 @@ class Person {
       children: this.children.map(child => child.name)
     };
   }
+
+  // Static method to find a person by name in an array of Person objects
+  static findPerson(array, name) {
+    return array.find(person => person.name === name);
+  }
 }
 
 module.exports = Person;
