@@ -12,7 +12,7 @@ let people = [];
 
 // Endpoint to add a person
 app.post('/person', (req, res) => {
-  const { name, sex, dob } = req.body;
+  const { name, sex, dob, children = [] } = req.body;
 
   // Check if person already exists
   const existingPerson = people.find(person => person.name.toLowerCase() === name.toLowerCase());
@@ -21,7 +21,13 @@ app.post('/person', (req, res) => {
   }
 
   const person = new Person(name, sex, dob);
-  people.push(person);
+
+  children.forEach(({ name, sex, dob }) => {
+    const child = new Person(name, sex, dob);
+    person.addChild(child);
+    people.push(child);
+  })
+  people.unshift(person);
   res.status(201).json(person.displayInfo());
 });
 
