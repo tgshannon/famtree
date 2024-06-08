@@ -1,6 +1,46 @@
 const express = require('express');
 const cors = require('cors');
-const Person = require('./Person');
+
+class Person {
+  constructor(name, sex, dob) {
+    this.name = name;
+    this.sex = sex;
+    this.dob = dob;
+    this.spouse = null;
+    this.children = [];
+  }
+
+  setSpouse(spouse) {
+    if (spouse instanceof Person) {
+      this.spouse = spouse;
+      spouse.spouse = this;
+    } else {
+      throw new Error("Spouse must be a Person object");
+    }
+  }
+
+  addChild(child) {
+    if (child instanceof Person) {
+      this.children.push(child);
+    } else {
+      throw new Error("Child must be a Person object");
+    }
+  }
+
+  displayInfo() {
+    return {
+      name: this.name,
+      sex: this.sex,
+      dob: this.dob,
+      spouse: this.spouse ? this.spouse.name : 'None',
+      children: this.children.map(child => child.name)
+    };
+  }
+
+  static findPerson(array, name) {
+    return array.find(person => person.name.toLowerCase() === name.toLowerCase());
+  }
+}
 
 const app = express();
 const port = 5001;
@@ -10,11 +50,9 @@ app.use(express.json());
 
 let people = [];
 
-// Endpoint to add a person
 app.post('/person', (req, res) => {
   const { name, sex, dob } = req.body;
 
-  // Check if person already exists
   const existingPerson = people.find(person => person.name.toLowerCase() === name.toLowerCase());
   if (existingPerson) {
     return res.status(409).json({ error: 'Person already exists' });
@@ -25,12 +63,10 @@ app.post('/person', (req, res) => {
   res.status(201).json(person.displayInfo());
 });
 
-// Endpoint to get all people
 app.get('/people', (req, res) => {
   res.json(people.map(person => person.displayInfo()));
 });
 
-// Endpoint to find a person by name
 app.get('/person', (req, res) => {
   const name = req.query.name;
   const person = people.find(person => person.name.toLowerCase() === name.toLowerCase());
@@ -41,7 +77,6 @@ app.get('/person', (req, res) => {
   }
 });
 
-// Endpoint to set a spouse
 app.post('/set-spouse', (req, res) => {
   const { personName, spouseName } = req.body;
 

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Tree } from 'react-tree-graph';
+import Tree from 'react-d3-tree';
 import './App.css';
-import 'react-tree-graph/dist/style.css';
 
 function App() {
   const [name, setName] = useState('');
@@ -135,19 +134,30 @@ function App() {
     }
   };
 
-  const buildTree = (person) => {
-    return {
-      name: person.name,
-      children: person.children.map(child => buildTree(people.find(p => p.name === child)))
-    };
-  };
+  const generateTreeData = () => {
+    const findPersonNode = (name) => people.find(person => person.name === name);
 
-  const rootPerson = people.length > 0 ? people[0] : null;
-  const treeData = rootPerson ? buildTree(rootPerson) : null;
+    const buildNode = (person) => {
+      if (!person) return null;
+
+      return {
+        name: person.name,
+        attributes: {
+          sex: person.sex,
+          dob: person.dob,
+          spouse: person.spouse ? person.spouse : 'None'
+        },
+        children: person.children.map(childName => buildNode(findPersonNode(childName))),
+      };
+    };
+
+    const rootPerson = people.length > 0 ? people[0] : null;
+    return rootPerson ? [buildNode(rootPerson)] : [];
+  };
 
   return (
     <div className="App">
-      <h1>Person Management</h1>
+      <h1>Family Tree</h1>
 
       <nav>
         <select onChange={(e) => setSelectedForm(e.target.value)}>
@@ -173,7 +183,7 @@ function App() {
         </div>
       )}
 
-      <h2>People List</h2>
+      <h2>Family Members</h2>
       <ul>
         {people.map((person, index) => (
           <li key={index}>
@@ -182,16 +192,10 @@ function App() {
         ))}
       </ul>
 
-      {treeData && (
-        <div className="tree-container">
-          <Tree
-            data={treeData}
-            height={400}
-            width={600}
-            animated
-          />
-        </div>
-      )}
+      <h2>Family Tree Visualization</h2>
+      <div id="treeWrapper" style={{ width: '100%', height: '500px' }}>
+        {people.length > 0 && <Tree data={generateTreeData()} />}
+      </div>
     </div>
   );
 }
