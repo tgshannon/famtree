@@ -17,10 +17,15 @@ function App() {
   const [spouseName, setSpouseName] = useState('');
   const [spouseError, setSpouseError] = useState('');
   const [spouseSuccess, setSpouseSuccess] = useState('');
+  const [rootPersonName, setRootPersonName] = useState('');
 
   const fetchPeople = async () => {
-    const response = await axios.get('http://localhost:5001/people');
-    setPeople(response.data);
+    try {
+      const response = await axios.get('http://localhost:5001/people');
+      setPeople(response.data);
+    } catch (error) {
+      console.error('Error fetching people:', error);
+    }
   };
 
   useEffect(() => {
@@ -53,6 +58,7 @@ function App() {
     try {
       const response = await axios.get(`http://localhost:5001/person?name=${searchName}`);
       setSearchResult(response.data);
+      setRootPersonName(response.data.name);
       setSearchName('');
     } catch (error) {
       if (error.response && error.response.status === 404) {
@@ -137,22 +143,48 @@ function App() {
   const generateTreeData = () => {
     const findPersonNode = (name) => people.find(person => person.name === name);
 
-    const buildNode = (person) => {
-      if (!person) return null;
+    const buildNode = (person, visited = new Set()) => {
+      if (!person || visited.has(person.name)) return null;
+
+      visited.add(person.name);
+
+      const spouseNode = person.spouse ? findPersonNode(person.spouse) : null;
+      const childrenNodes = person.children.map(childName => buildNode(findPersonNode(childName), visited)).filter(child => child !== null);
 
       return {
         name: person.name,
         attributes: {
           sex: person.sex,
           dob: person.dob,
-          spouse: person.spouse ? person.spouse : 'None'
         },
-        children: person.children.map(childName => buildNode(findPersonNode(childName))),
+        children: childrenNodes,
+        spouse: spouseNode ? {
+          name: spouseNode.name,
+          attributes: {
+            sex: spouseNode.sex,
+            dob: spouseNode.dob,
+          },
+        } : null
       };
     };
 
-    const rootPerson = people.length > 0 ? people[0] : null;
-    return rootPerson ? [buildNode(rootPerson)] : [];
+    const rootPerson = findPersonNode(rootPersonName);
+    const rootNode = rootPerson ? buildNode(rootPerson) : null;
+
+    if (rootNode && rootNode.spouse) {
+      rootNode.children.unshift(rootNode.spouse);
+      delete rootNode.spouse;
+    }
+
+    return rootNode ? [rootNode] : [];
+  };
+
+  const nodeSvgShape = {
+    shape: 'circle',
+    shapeProps: {
+      r: 10,
+      fill: 'blue',
+    },
   };
 
   return (
@@ -194,7 +226,33 @@ function App() {
 
       <h2>Family Tree Visualization</h2>
       <div id="treeWrapper" style={{ width: '100%', height: '500px' }}>
-        {people.length > 0 && <Tree data={generateTreeData()} />}
+        {rootPersonName && (
+          <Tree
+            data={generateTreeData()}
+            orientation="vertical"
+            translate={{ x: 200, y: 50 }}
+            nodeSvgShape={nodeSvgShape}
+            nodeSize={{ x: 200, y: 100 }}
+            styles={{
+              links: {
+                stroke: 'black',
+                strokeWidth: 2,
+              },
+              nodes: {
+                node: {
+                  circle: {
+                    fill: 'blue',
+                  },
+                },
+                leafNode: {
+                  circle: {
+                    fill: 'green',
+                  },
+                },
+              },
+            }}
+          />
+        )}
       </div>
     </div>
   );
