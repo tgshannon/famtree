@@ -17,6 +17,10 @@ function App() {
   const [spouseName, setSpouseName] = useState('');
   const [spouseError, setSpouseError] = useState('');
   const [spouseSuccess, setSpouseSuccess] = useState('');
+  const [parentName, setParentName] = useState('');
+  const [childName, setChildName] = useState('');
+  const [childError, setChildError] = useState('');
+  const [childSuccess, setChildSuccess] = useState('');
   const [rootPersonName, setRootPersonName] = useState('');
 
   const fetchPeople = async () => {
@@ -88,6 +92,24 @@ function App() {
     }
   };
 
+  const addChild = async (e) => {
+    e.preventDefault();
+    setChildError('');
+    setChildSuccess('');
+    try {
+      const response = await axios.post('http://localhost:5001/add-child', { parentName, childName });
+      setChildSuccess(response.data.message);
+      setParentName('');
+      setChildName('');
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        setChildError('Parent or child not found');
+      } else {
+        setChildError('An error occurred');
+      }
+    }
+  };
+
   const renderForm = () => {
     switch (selectedForm) {
       case 'addPerson':
@@ -135,6 +157,22 @@ function App() {
             {spouseSuccess && <p>{spouseSuccess}</p>}
           </form>
         );
+      case 'addChild':
+        return (
+          <form onSubmit={addChild}>
+            <div>
+              <label>Parent Name: </label>
+              <input type="text" value={parentName} onChange={e => setParentName(e.target.value)} />
+            </div>
+            <div>
+              <label>Child Name: </label>
+              <input type="text" value={childName} onChange={e => setChildName(e.target.value)} />
+            </div>
+            <button type="submit">Add Child</button>
+            {childError && <p>{childError}</p>}
+            {childSuccess && <p>{childSuccess}</p>}
+          </form>
+        );
       default:
         return <p>Please select an option from the menu.</p>;
     }
@@ -148,33 +186,36 @@ function App() {
 
       visited.add(person.name);
 
-      const spouseNode = person.spouse ? findPersonNode(person.spouse) : null;
       const childrenNodes = person.children.map(childName => buildNode(findPersonNode(childName), visited)).filter(child => child !== null);
 
-      return {
+      const node = {
         name: person.name,
         attributes: {
           sex: person.sex,
           dob: person.dob,
         },
         children: childrenNodes,
-        spouse: spouseNode ? {
-          name: spouseNode.name,
-          attributes: {
-            sex: spouseNode.sex,
-            dob: spouseNode.dob,
-          },
-        } : null
       };
+
+      if (person.spouse) {
+        const spouseNode = findPersonNode(person.spouse);
+        if (spouseNode) {
+          node.children.unshift({
+            name: spouseNode.name,
+            attributes: {
+              sex: spouseNode.sex,
+              dob: spouseNode.dob,
+            },
+            children: [],
+          });
+        }
+      }
+
+      return node;
     };
 
     const rootPerson = findPersonNode(rootPersonName);
     const rootNode = rootPerson ? buildNode(rootPerson) : null;
-
-    if (rootNode && rootNode.spouse) {
-      rootNode.children.unshift(rootNode.spouse);
-      delete rootNode.spouse;
-    }
 
     return rootNode ? [rootNode] : [];
   };
@@ -197,6 +238,7 @@ function App() {
           <option value="addPerson">Add Person</option>
           <option value="findPerson">Find Person</option>
           <option value="setSpouse">Set Spouse</option>
+          <option value="addChild">Add Child</option>
         </select>
       </nav>
 

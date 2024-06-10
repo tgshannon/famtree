@@ -91,6 +91,24 @@ app.post('/set-spouse', (req, res) => {
   res.status(200).json({ message: 'Spouse set successfully', person: person.displayInfo() });
 });
 
+app.post('/add-child', (req, res) => {
+  const { parentName, childName } = req.body;
+
+  const parent = people.find(p => p.name.toLowerCase() === parentName.toLowerCase());
+  const child = people.find(p => p.name.toLowerCase() === childName.toLowerCase());
+
+  if (!parent || !child) {
+    return res.status(404).json({ error: 'Parent or child not found' });
+  }
+
+  try {
+    parent.addChild(child);
+    res.status(200).json({ message: 'Child added successfully', parent: parent.displayInfo() });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
