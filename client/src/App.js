@@ -83,6 +83,7 @@ function App() {
       setSpouseSuccess(response.data.message);
       setPersonName('');
       setSpouseName('');
+      fetchPeople(); // Fetch people again to update the tree
     } catch (error) {
       if (error.response && error.response.status === 404) {
         setSpouseError('One or both persons not found');
@@ -101,6 +102,7 @@ function App() {
       setChildSuccess(response.data.message);
       setParentName('');
       setChildName('');
+      fetchPeople(); // Fetch people again to update the tree
     } catch (error) {
       if (error.response && error.response.status === 404) {
         setChildError('Parent or child not found');
