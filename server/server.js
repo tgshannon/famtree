@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
 
 class Person {
   constructor(name, sex, dob) {
@@ -50,6 +51,35 @@ app.use(express.json());
 
 let people = [];
 
+// File path for storing data
+const DATA_FILE = 'people.json';
+
+// Function to load data from file
+const loadData = () => {
+  if (fs.existsSync(DATA_FILE)) {
+    const data = fs.readFileSync(DATA_FILE, 'utf8');
+    const parsedData = JSON.parse(data);
+    people = parsedData.map(p => {
+      const person = new Person(p.name, p.sex, p.dob);
+      person.spouse = p.spouse ? new Person(p.spouse.name, p.spouse.sex, p.spouse.dob) : null;
+      person.children = p.children.map(child => new Person(child.name, child.sex, child.dob));
+      return person;
+    });
+  }
+};
+
+// Function to save data to file
+const saveData = () => {
+  const data = JSON.stringify(people.map(person => ({
+    name: person.name,
+    sex: person.sex,
+    dob: person.dob,
+    spouse: person.spouse ? { name: person.spouse.name, sex: person.spouse.sex, dob: person.spouse.dob } : null,
+    children: person.children.map(child => ({ name: child.name, sex: child.sex, dob: child.dob }))
+  })), null, 2);
+  fs.writeFileSync(DATA_FILE, data);
+};
+
 app.post('/person', (req, res) => {
   const { name, sex, dob } = req.body;
 
@@ -60,6 +90,7 @@ app.post('/person', (req, res) => {
 
   const person = new Person(name, sex, dob);
   people.push(person);
+  saveData();
   res.status(201).json(person.displayInfo());
 });
 
@@ -88,6 +119,7 @@ app.post('/set-spouse', (req, res) => {
   }
 
   person.setSpouse(spouse);
+  saveData();
   res.status(200).json({ message: 'Spouse set successfully', person: person.displayInfo() });
 });
 
@@ -103,11 +135,15 @@ app.post('/add-child', (req, res) => {
 
   try {
     parent.addChild(child);
+    saveData();
     res.status(200).json({ message: 'Child added successfully', parent: parent.displayInfo() });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 });
+
+// Load data when the server starts
+loadData();
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
