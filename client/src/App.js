@@ -201,15 +201,17 @@ function App() {
 
       if (person.spouse) {
         const spouseNode = findPersonNode(person.spouse);
-        if (spouseNode) {
+        if (spouseNode && !visited.has(spouseNode.name)) {
+          const spouseChildrenNodes = spouseNode.children.map(childName => buildNode(findPersonNode(childName), visited)).filter(child => child !== null);
           node.children.unshift({
             name: spouseNode.name,
             attributes: {
               sex: spouseNode.sex,
               dob: spouseNode.dob,
             },
-            children: [],
+            children: spouseChildrenNodes,
           });
+          visited.add(spouseNode.name);
         }
       }
 
